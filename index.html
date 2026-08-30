@@ -123,21 +123,28 @@ h1{margin-bottom:8px}
 
 /* ============ mini catálogo ============ */
 .reel{
-  display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory;
-  scrollbar-width:none; padding-bottom:6px;
-  margin-right:-20px; padding-right:20px;
+  display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x proximity;
+  padding-bottom:14px; margin-right:-20px; padding-right:20px;
+  cursor:grab;
+  /* barra visível: no computador é a única forma de arrastar */
+  scrollbar-width:thin;
+  scrollbar-color:var(--mesh) var(--slab);
 }
-.reel::-webkit-scrollbar{display:none}
+.reel.arrastando{cursor:grabbing}
+.reel::-webkit-scrollbar{height:6px}
+.reel::-webkit-scrollbar-track{background:var(--slab); border-radius:3px}
+.reel::-webkit-scrollbar-thumb{background:var(--mesh); border-radius:3px}
+.reel::-webkit-scrollbar-thumb:hover{background:var(--filament)}
 .item{
   flex:0 0 132px; scroll-snap-align:start; text-align:left;
   border:1px solid var(--line); border-radius:3px; background:var(--slab); overflow:hidden;
   transition:border-color .2s, transform .2s;
 }
 .item:hover{border-color:var(--filament); transform:translateY(-2px)}
-.item .pic{display:block; position:relative; aspect-ratio:1/1; border-bottom:1px solid var(--line); background:var(--void); overflow:hidden}
+.item .pic{display:block; position:relative; aspect-ratio:3/4; border-bottom:1px solid var(--line); background:var(--void); overflow:hidden}
 .item .pic svg{display:block; width:100%; height:100%}
-.item .pic img{padding:6px; background:radial-gradient(80% 80% at 50% 45%, rgba(124,92,255,.14), transparent 70%)}
-.item .pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .3s}
+
+.item .pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .3s}
 .item .pic img.ok{opacity:1}
 .item .info{display:block; padding:10px 11px 12px}
 .item .info b{display:block; font-family:var(--f-display); font-weight:700; font-size:12.5px; letter-spacing:-.01em; line-height:1.25}
@@ -198,7 +205,7 @@ footer .who:hover{color:var(--filament)}
   <!-- mini catálogo -->
   <p class="lbl">ALGUMAS PEÇAS</p>
   <div class="reel" id="reel"></div>
-  <p class="hint">TOQUE NA PEÇA PARA PEDIR PELO WHATSAPP</p>
+  <p class="hint">ARRASTE PARA O LADO &middot; TOQUE NA PEÇA PARA PEDIR PELO WHATSAPP</p>
 
   <!-- card para quem também imprime -->
   <p class="lbl">PRA QUEM IMPRIME</p>
@@ -259,12 +266,12 @@ const PECAS = [
   { slug:"estrela",     nome:"Chaveiro Estrela",  preco:10, img: IMG + "Estrela.png" },
   { slug:"coracao",     nome:"Chaveiro Coração",  preco:10, img: IMG + "S2.png" },
   { slug:"beijo",       nome:"Chaveiro Beijo",    preco:10, img: IMG + "Boca.png" },
-  { slug:"esmalte",     nome:"Chaveiro Esmalte",  preco:12, img: IMG + "Esmalte.png" },
-  { slug:"salto",       nome:"Chaveiro Salto",    preco:12, img: IMG + "Salto.png" },
-  { slug:"tenis",       nome:"Chaveiro Tênis",    preco:15, img: IMG + "Tenis.png" },
-  { slug:"peixinho",    nome:"Chaveiro Peixinho", preco:15, img: IMG + "Peixinho.png" },
-  { slug:"flor-fidget", nome:"Flor Fidget",       preco:15, img: IMG + "Florfid%20.png" },
-  { slug:"fidget",      nome:"Fidget",            preco:15, img: IMG + "Fidget.png" }
+  { slug:"esmalte",     nome:"Chaveiro Esmalte",  preco:10, img: IMG + "Esmalte.png" },
+  { slug:"salto",       nome:"Chaveiro Salto",    preco:10, img: IMG + "Salto.png" },
+  { slug:"tenis",       nome:"Chaveiro Tênis",    preco:10, img: IMG + "Tenis.png" },
+  { slug:"peixinho",    nome:"Chaveiro Peixinho", preco:10, img: IMG + "Peixinho.png" },
+  { slug:"flor-fidget", nome:"Flor Fidget",       preco:10, img: IMG + "Florfid%20.png" },
+  { slug:"fidget",      nome:"Fidget",            preco:10, img: IMG + "Fidget.png" }
 ];
 PECAS.forEach(p => { p.img = p.img || foto(p.slug); });
 
@@ -330,7 +337,7 @@ function miniatura(nome){
     }).join(" ");
     aneis += `<polygon points="${pts}" fill="none" stroke="${cor}" stroke-width="1.4" opacity="${(.25 + i*.13).toFixed(2)}"/>`;
   }
-  return `<svg viewBox="0 0 300 300" role="img" aria-label="${nome}" style="width:100%;height:100%;display:block">
+  return `<svg viewBox="0 0 300 300" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${nome}" style="width:100%;height:100%;display:block">
     <defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#1D1929"/><stop offset="100%" stop-color="#0A0910"/></linearGradient></defs>
     <rect width="300" height="300" fill="url(#${uid})"/>
@@ -355,6 +362,38 @@ $("#reel").innerHTML = PECAS.map(p => `
 /* ---- link do portfólio, só aparece se estiver publicado ---- */
 const lkPortfolio = $("#link-portfolio");
 if(CONFIG.portfolio) lkPortfolio.href = CONFIG.portfolio; else lkPortfolio.remove();
+
+/* ---- arrastar a tirinha com o mouse ----
+   No celular o dedo já rola sozinho. No computador, sem isso,
+   só a barra de rolagem move a lista. */
+(function(){
+  const reel = $("#reel");
+  let pegando = false, arrastou = false, x0 = 0, scroll0 = 0;
+
+  reel.addEventListener("pointerdown", e => {
+    if(e.pointerType !== "mouse") return;
+    pegando = true; arrastou = false;
+    x0 = e.clientX; scroll0 = reel.scrollLeft;
+    reel.classList.add("arrastando");
+  });
+
+  window.addEventListener("pointermove", e => {
+    if(!pegando) return;
+    const dx = e.clientX - x0;
+    if(Math.abs(dx) > 4) arrastou = true;
+    reel.scrollLeft = scroll0 - dx;
+  });
+
+  window.addEventListener("pointerup", () => {
+    pegando = false;
+    reel.classList.remove("arrastando");
+  });
+
+  // arrastou não pode virar clique no WhatsApp
+  reel.addEventListener("click", e => {
+    if(arrastou){ e.preventDefault(); e.stopPropagation(); arrastou = false; }
+  }, true);
+})();
 
 /* ---- copiar ---- */
 const toast = $("#toast");
