@@ -134,11 +134,12 @@ h1{margin-bottom:8px}
   transition:border-color .2s, transform .2s;
 }
 .item:hover{border-color:var(--filament); transform:translateY(-2px)}
-.item .pic{position:relative; aspect-ratio:1/1; border-bottom:1px solid var(--line); background:var(--void)}
+.item .pic{display:block; position:relative; aspect-ratio:1/1; border-bottom:1px solid var(--line); background:var(--void); overflow:hidden}
+.item .pic svg{display:block; width:100%; height:100%}
 .item .pic img{padding:6px; background:radial-gradient(80% 80% at 50% 45%, rgba(124,92,255,.14), transparent 70%)}
 .item .pic img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transition:opacity .3s}
 .item .pic img.ok{opacity:1}
-.item .info{padding:10px 11px 12px}
+.item .info{display:block; padding:10px 11px 12px}
 .item .info b{display:block; font-family:var(--f-display); font-weight:700; font-size:12.5px; letter-spacing:-.01em; line-height:1.25}
 .item .info span{display:block; font-family:var(--f-mono); font-size:11px; color:var(--nozzle); margin-top:5px}
 .item .info small{display:block; font-family:var(--f-mono); font-size:8.5px; letter-spacing:.1em; color:var(--ghost)}
@@ -230,9 +231,9 @@ const CONFIG = {
   tiktok: "https://www.tiktok.com/@biamaker3d",
   instagram: "https://www.instagram.com/biamaker3d",
 
-  // Pix copia e cola: a chave (telefone, CPF, e-mail, aleatória) ou o
-  // código copia e cola gerado no app do banco. Vazio esconde o bloco.
-  pix: "",
+  // Chave Pix. Aqui é o telefone, no formato que o banco aceita.
+  // Vazio esconde o bloco.
+  pix: "+5521971339411",
   pixTitular: "Beatriz Mendes Pessoa",
 
   // Link do catálogo completo. Deixe "" enquanto ele estiver em construção
@@ -300,9 +301,8 @@ $("#acoes").innerHTML = ACOES.map(a => `
 
 /* ---- copia e cola ---- */
 const COPIAVEIS = [
-  CONFIG.pix ? { destaque:true, rotulo:"PIX COPIA E COLA &middot; " + CONFIG.pixTitular,
-                 valor: CONFIG.pix, botao:"COPIAR PIX" } : null,
-  { rotulo:"WHATSAPP", valor: CONFIG.whatsappVisivel, botao:"COPIAR NÚMERO" },
+  CONFIG.pix ? { rotulo:"PIX &middot; TELEFONE &middot; " + CONFIG.pixTitular,
+                 valor: CONFIG.pix, botao:"COPIAR CHAVE PIX" } : null,
   { rotulo:"TIKTOK E INSTAGRAM", valor: CONFIG.arroba, botao:"COPIAR @" }
 ].filter(Boolean);
 
