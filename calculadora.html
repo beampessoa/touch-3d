@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0910">
+<title>Calculadora de precificação 3D | PRINTILDA</title>
+<meta name="description" content="Calcule o preço justo da sua peça impressa em 3D: filamento, energia, desgaste da máquina, risco e margem. Ferramenta gratuita da Printilda.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --void:#0A0910; --slab:#15121E; --slab-2:#1D1929;
+  --line:#2C2640; --steel:#3A3550;
+  --filament:#FF3D8B; --nozzle:#FFA724; --mesh:#7C5CFF;
+  --ink:#EFEBF7; --ghost:#8A83A6; --ok:#4ADE80;
+  --f-display:'Syne','Trebuchet MS',sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,sans-serif;
+  --f-mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{
+  background:var(--void); color:var(--ink);
+  font-family:var(--f-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  padding:24px 18px calc(40px + env(safe-area-inset-bottom));
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:repeating-linear-gradient(to bottom,
+    rgba(124,92,255,.045) 0px, rgba(124,92,255,.045) 1px, transparent 1px, transparent 5px);
+}
+.page{position:relative; z-index:1; max-width:460px; margin:0 auto}
+a{color:inherit; text-decoration:none}
+button{font:inherit; color:inherit; background:none; border:none; cursor:pointer}
+:focus-visible{outline:2px solid var(--nozzle); outline-offset:3px; border-radius:2px}
+
+/* topo */
+.mark{font-family:var(--f-mono); font-size:11px; letter-spacing:.24em; color:var(--ghost)}
+.mark b{color:var(--filament); font-weight:500}
+h1{font-family:var(--f-display); font-weight:800; font-size:clamp(30px,9vw,40px);
+   line-height:.95; letter-spacing:-.035em; margin:12px 0 10px}
+.sub{color:var(--ghost); font-size:14px; max-width:40ch}
+.by{font-family:var(--f-mono); font-size:10px; letter-spacing:.12em; color:var(--mesh); margin-top:4px}
+
+/* cartões */
+.card{border:1px solid var(--line); border-radius:3px; background:var(--slab); padding:16px; margin-top:12px}
+.card > h2{
+  font-family:var(--f-mono); font-weight:400; font-size:10px; letter-spacing:.18em;
+  color:var(--ghost); display:flex; align-items:center; gap:8px; margin-bottom:14px;
+}
+.card > h2::before{content:""; width:5px; height:5px; border-radius:50%; background:var(--filament)}
+
+label{display:block; font-family:var(--f-mono); font-size:10px; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--ghost); margin-bottom:6px}
+input[type=number], input[type=text]{
+  width:100%; background:var(--slab-2); border:1px solid var(--line); border-radius:2px;
+  padding:12px 13px; color:var(--ink); font-size:15px; font-weight:500;
+  outline:none; transition:border-color .2s; -webkit-appearance:none;
+}
+input:focus{border-color:var(--filament)}
+.f{margin-bottom:12px}
+.f:last-child{margin-bottom:0}
+.duo{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.nota{font-size:12px; color:var(--ghost); line-height:1.45; margin-top:6px}
+
+/* categoria */
+.cats{display:grid; grid-template-columns:repeat(2,1fr); gap:8px}
+.cat{
+  border:1px solid var(--line); border-radius:2px; background:var(--slab-2);
+  padding:11px 10px; text-align:left; transition:border-color .2s, color .2s;
+}
+.cat:hover{border-color:var(--steel)}
+.cat.on{border-color:var(--filament); background:rgba(255,61,139,.08)}
+.cat b{display:block; font-size:13px; font-weight:600}
+.cat span{display:block; font-family:var(--f-mono); font-size:9.5px; letter-spacing:.08em; color:var(--ghost); margin-top:3px}
+
+/* sliders */
+.srow{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px}
+.sval{font-family:var(--f-mono); font-size:13px; color:var(--nozzle)}
+input[type=range]{
+  width:100%; height:3px; border-radius:2px; background:var(--line);
+  -webkit-appearance:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+  background:var(--filament); border:2px solid var(--void);
+}
+input[type=range]::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%; background:var(--filament); border:2px solid var(--void);
+}
+
+/* avançado */
+details{border:1px solid var(--line); border-radius:3px; background:var(--slab); margin-top:12px}
+summary{
+  padding:14px 16px; cursor:pointer; list-style:none;
+  font-family:var(--f-mono); font-size:10px; letter-spacing:.18em; color:var(--ghost);
+  display:flex; justify-content:space-between; align-items:center;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+"; color:var(--filament); font-size:15px}
+details[open] summary::after{content:"−"}
+details .in{padding:0 16px 16px}
+
+/* resultado */
+.hero-out{
+  border:1px solid var(--filament); border-radius:3px; text-align:center;
+  background:radial-gradient(120% 100% at 0% 0%, rgba(255,61,139,.16), transparent 62%), var(--slab);
+  padding:22px 16px; margin-top:16px;
+}
+.hero-out .lbl{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.2em; color:var(--ghost)}
+.hero-out .big{font-family:var(--f-display); font-weight:800; font-size:44px; letter-spacing:-.04em; line-height:1.05; color:var(--filament); margin-top:4px}
+.hero-out .big small{font-family:var(--f-mono); font-size:14px; font-weight:400; color:var(--ghost); vertical-align:top; margin-right:4px}
+.hero-out .un{font-family:var(--f-mono); font-size:12px; color:var(--ghost); margin-top:6px}
+
+.duo-out{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+.mini{border:1px solid var(--line); border-radius:3px; background:var(--slab); padding:13px; text-align:center}
+.mini .lbl{font-family:var(--f-mono); font-size:9px; letter-spacing:.14em; color:var(--ghost)}
+.mini .v{font-family:var(--f-display); font-weight:700; font-size:20px; letter-spacing:-.02em; margin-top:4px}
+.v-ok{color:var(--ok)} .v-warn{color:var(--nozzle)}
+
+table{width:100%; border-collapse:collapse}
+td{padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; color:var(--ghost)}
+td:last-child{text-align:right; font-family:var(--f-mono); color:var(--ink)}
+tr:last-child td{border-bottom:none}
+tr.tot td{color:var(--nozzle); font-weight:600; border-top:1px solid var(--line)}
+
+.alerta{
+  border:1px solid var(--nozzle); border-radius:3px; background:rgba(255,167,36,.08);
+  padding:12px 14px; margin-top:12px; font-size:13px; color:var(--ink);
+}
+.alerta b{color:var(--nozzle)}
+
+/* aula rápida */
+.aula{margin-top:12px}
+.aula p{font-size:13.5px; color:var(--ghost); margin-bottom:10px}
+.aula p strong{color:var(--ink); font-weight:500}
+.aula p:last-child{margin-bottom:0}
+
+/* cta */
+.cta{
+  display:flex; align-items:center; gap:14px; margin-top:20px;
+  border:1px solid var(--filament); border-radius:3px;
+  background:var(--filament); color:var(--void); padding:16px;
+}
+.cta b{display:block; font-family:var(--f-display); font-size:16px}
+.cta span{display:block; font-size:12.5px; color:rgba(10,9,16,.72)}
+.cta .go{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.12em}
+.voltar{
+  display:block; text-align:center; margin-top:14px;
+  font-family:var(--f-mono); font-size:10px; letter-spacing:.14em; color:var(--ghost);
+}
+.voltar:hover{color:var(--filament)}
+
+footer{
+  border-top:1px solid var(--line); margin-top:26px; padding-top:18px;
+  font-family:var(--f-mono); font-size:9.5px; letter-spacing:.1em; color:var(--ghost); line-height:1.9;
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.001ms !important}}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <span class="mark">PRINTILDA<b>_</b></span>
+  <h1>Quanto cobrar pela sua peça</h1>
+  <p class="by">PROJETADA POR UMA ENGENHEIRA DE MATERIAIS</p>
+
+  <!-- categoria -->
+  <section class="card">
+    <h2>TIPO DE PEÇA</h2>
+    <div class="cats" id="cats"></div>
+    <p class="nota" id="cat-nota"></p>
+  </section>
+
+  <!-- dados do fatiador -->
+  <section class="card">
+    <h2>DADOS DO FATIADOR</h2>
+    <div class="duo">
+      <div class="f">
+        <label for="peso">Peso total (g)</label>
+        <input type="number" id="peso" inputmode="decimal" placeholder="ex: 126" value="126">
+      </div>
+      <div class="f">
+        <label for="tempo">Tempo total (h)</label>
+        <input type="number" id="tempo" step="0.1" inputmode="decimal" placeholder="ex: 6" value="6">
+      </div>
+    </div>
+    <div class="duo">
+      <div class="f">
+        <label for="qtd">Peças no trabalho</label>
+        <input type="number" id="qtd" inputmode="numeric" placeholder="ex: 24" value="24">
+      </div>
+      <div class="f">
+        <label for="ckg">Filamento (R$/kg)</label>
+        <input type="number" id="ckg" inputmode="decimal" placeholder="ex: 95" value="95">
+      </div>
+    </div>
+    <p class="nota">Peso e tempo são do <strong>trabalho inteiro</strong>, do jeito que o fatiador mostra. Se a mesa sai com 24 peças, coloque as 24 aqui e o peso das 24.</p>
+  </section>
+
+  <!-- extras -->
+  <section class="card">
+    <h2>CUSTOS POR TRABALHO</h2>
+    <div class="duo">
+      <div class="f">
+        <label for="emb">Embalagem (R$)</label>
+        <input type="number" id="emb" step="0.01" inputmode="decimal" value="0">
+      </div>
+      <div class="f">
+        <label for="out">Outros (R$)</label>
+        <input type="number" id="out" step="0.01" inputmode="decimal" value="0">
+      </div>
+    </div>
+    <p class="nota">Argola, chaveiro, ímã, sacolinha, etiqueta, frete até o cliente. Some tudo do trabalho inteiro, não de uma peça só.</p>
+  </section>
+
+  <!-- risco e margem -->
+  <section class="card">
+    <h2>RISCO E MARGEM</h2>
+    <div class="f">
+      <div class="srow"><label for="risco" style="margin:0">Taxa de falha</label><span class="sval" id="risco-v">8%</span></div>
+      <input type="range" id="risco" min="0" max="30" step="1" value="8">
+      <p class="nota">Nem toda impressão sai. Warping, descolamento, entupimento. Essa taxa dilui o prejuízo das que falham no preço das que dão certo.</p>
+    </div>
+    <div class="f">
+      <div class="srow"><label for="margem" style="margin:0">Margem de lucro</label><span class="sval" id="margem-v">80%</span></div>
+      <input type="range" id="margem" min="0" max="300" step="5" value="80">
+      <p class="nota">O que sobra pra você depois de pagar tudo. É aqui que entram seu tempo de modelagem, acabamento, atendimento e o valor da ideia.</p>
+    </div>
+  </section>
+
+  <!-- avançado -->
+  <details>
+    <summary>MÁQUINA E ENERGIA</summary>
+    <div class="in">
+      <div class="duo">
+        <div class="f">
+          <label for="watts">Consumo (W)</label>
+          <input type="number" id="watts" inputmode="decimal" value="200">
+        </div>
+        <div class="f">
+          <label for="kwh">Energia (R$/kWh)</label>
+          <input type="number" id="kwh" step="0.01" inputmode="decimal" value="0.95">
+        </div>
+      </div>
+      <div class="duo">
+        <div class="f">
+          <label for="maq">Preço da máquina (R$)</label>
+          <input type="number" id="maq" inputmode="decimal" value="4750">
+        </div>
+        <div class="f">
+          <label for="vida">Vida útil (h)</label>
+          <input type="number" id="vida" inputmode="decimal" value="5000">
+        </div>
+      </div>
+      <p class="nota">A máquina se paga sozinha se cada hora de impressão devolver um pedaço do que ela custou. Preço dividido por vida útil dá o desgaste por hora. Esquecer isso é o erro mais comum de quem começa.</p>
+    </div>
+  </details>
+
+  <!-- resultado -->
+  <div class="hero-out">
+    <div class="lbl">PREÇO DO TRABALHO INTEIRO</div>
+    <div class="big"><small>R$</small><span id="r-total">0,00</span></div>
+    <div class="un" id="r-unit">R$ 0,00 por peça</div>
+  </div>
+
+  <div class="duo-out">
+    <div class="mini"><div class="lbl">CUSTO</div><div class="v" id="r-custo">R$ 0,00</div></div>
+    <div class="mini"><div class="lbl">LUCRO</div><div class="v v-ok" id="r-lucro">R$ 0,00</div></div>
+  </div>
+
+  <section class="card">
+    <h2>DE ONDE VEM ESSE NÚMERO</h2>
+    <table>
+      <tr><td>Filamento</td><td id="b-fil">R$ 0,00</td></tr>
+      <tr><td>Energia</td><td id="b-en">R$ 0,00</td></tr>
+      <tr><td>Desgaste da máquina</td><td id="b-dep">R$ 0,00</td></tr>
+      <tr><td>Embalagem e outros</td><td id="b-ext">R$ 0,00</td></tr>
+      <tr><td>Reserva de falha</td><td id="b-risco">R$ 0,00</td></tr>
+      <tr class="tot"><td>Custo total</td><td id="b-custo">R$ 0,00</td></tr>
+      <tr class="tot"><td>Lucro</td><td id="b-lucro">R$ 0,00</td></tr>
+    </table>
+    <div id="alerta"></div>
+  </section>
+
+  <section class="card aula">
+    <h2>TRÊS ERROS QUE CUSTAM CARO</h2>
+    <p><strong>Cobrar só o filamento.</strong> Uma peça de 12 g em PLA de R$ 95 o quilo dá R$ 1,14 de material. Se o preço sai de R$ 2, não sobrou nada: energia, desgaste e o seu tempo saíram do seu bolso.</p>
+    <p><strong>Ignorar a hora da máquina.</strong> Impressão 3D é lenta. Uma peça de R$ 10 que ocupa 6 horas rende menos que uma de R$ 6 que sai em 40 minutos. Olhe sempre o lucro por hora de máquina, não só o lucro por peça.</p>
+    <p><strong>Esquecer o que falhou.</strong> Se uma em cada dez impressões vai pro lixo, seu custo real é 11% maior do que a conta simples mostra. A reserva de falha existe pra isso.</p>
+  </section>
+
+  <a class="cta" id="cta-zap" href="#" target="_blank" rel="noopener">
+    <span style="flex:1">
+      <b>Prefere que eu imprima?</b>
+      <span>Manda sua ideia no WhatsApp e eu faço o orçamento.</span>
+    </span>
+    <span class="go">FALAR</span>
+  </a>
+
+  <a class="voltar" href="index.html">&larr; VOLTAR PARA A PRINTILDA</a>
+
+  <footer>
+    CALCULADORA GRATUITA DA PRINTILDA &middot; OS NÚMEROS FICAM SÓ NO SEU CELULAR, NADA É SALVO<br>
+    @BIAMAKER3D
+  </footer>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------
+   CONFIG
+   ------------------------------------------------------------ */
+const WHATSAPP = "5521971339411";
+document.getElementById("cta-zap").href =
+  "https://wa.me/" + WHATSAPP + "?text=" +
+  encodeURIComponent("Olá! Usei a calculadora da Printilda e quero um orçamento.");
+
+/* margem sugerida por tipo de peça */
+const CATS = [
+  { id:"decorativo",    nome:"Decorativo",    margem:80,
+    nota:"Enfeite, miniatura, vaso. Margem média, porque o cliente compara com o que vê em loja." },
+  { id:"funcional",     nome:"Funcional",     margem:60,
+    nota:"Suporte, peça de reposição, encaixe. Margem menor, porque existe alternativa pronta no mercado." },
+  { id:"salao",         nome:"Beleza e salão", margem:100,
+    nota:"Expositor, porta-esmalte, brinde de studio. Margem alta: é peça que não se acha pronta." },
+  { id:"personalizado", nome:"Personalizado", margem:120,
+    nota:"Nome, logo, homenagem, presente. A maior margem, porque só existe uma no mundo e o valor é afetivo." }
+];
+
+let catAtual = CATS[3];
+
+const $ = s => document.querySelector(s);
+const num = id => +document.getElementById(id).value || 0;
+const brl = v => "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2});
+
+/* montar categorias */
+$("#cats").innerHTML = CATS.map(c => `
+  <button class="cat" data-id="${c.id}">
+    <b>${c.nome}</b><span>MARGEM ${c.margem}%</span>
+  </button>`).join("");
+
+$("#cats").addEventListener("click", e => {
+  const b = e.target.closest(".cat"); if(!b) return;
+  catAtual = CATS.find(c => c.id === b.dataset.id);
+  document.querySelectorAll(".cat").forEach(x => x.classList.toggle("on", x === b));
+  document.getElementById("margem").value = catAtual.margem;
+  calc();
+});
+
+/* ------------------------------------------------------------
+   A CONTA
+   ------------------------------------------------------------ */
+function calc(){
+  const peso  = num("peso");
+  const tempo = num("tempo");
+  const qtd   = Math.max(1, num("qtd"));
+  const ckg   = num("ckg");
+  const emb   = num("emb");
+  const out   = num("out");
+  const risco = num("risco");
+  const margem= num("margem");
+
+  const watts = num("watts");
+  const kwh   = num("kwh");
+  const maq   = num("maq");
+  const vida  = num("vida");
+
+  const cFil = (peso/1000) * ckg;                 // filamento gasto no trabalho
+  const cEn  = (watts/1000) * kwh * tempo;        // energia das horas de impressão
+  const cDep = vida > 0 ? (maq/vida) * tempo : 0; // desgaste da máquina por hora
+
+  const base    = cFil + cEn + cDep;
+  const cRisco  = base * (risco/100);
+  const custoT  = base + cRisco + emb + out;
+  const lucro   = (base + cRisco) * (margem/100);
+  const precoF  = custoT + lucro;
+
+  $("#cat-nota").textContent = catAtual.nota;
+  $("#risco-v").textContent  = risco + "%";
+  $("#margem-v").textContent = margem + "%";
+
+  $("#r-total").textContent = precoF.toLocaleString("pt-BR",{minimumFractionDigits:2, maximumFractionDigits:2});
+  $("#r-unit").textContent  = brl(precoF/qtd) + " por peça";
+  $("#r-custo").textContent = brl(custoT);
+  $("#r-lucro").textContent = brl(lucro);
+
+  $("#b-fil").textContent   = brl(cFil);
+  $("#b-en").textContent    = brl(cEn);
+  $("#b-dep").textContent   = brl(cDep);
+  $("#b-ext").textContent   = brl(emb + out);
+  $("#b-risco").textContent = brl(cRisco);
+  $("#b-custo").textContent = brl(custoT);
+  $("#b-lucro").textContent = brl(lucro);
+
+  /* leitura do lucro por hora de máquina, que é o número que ninguém olha */
+  const porHora = tempo > 0 ? lucro/tempo : 0;
+  let msg = "";
+  if(peso > 0 && tempo > 0){
+    msg = `<div class="alerta">Esse trabalho deixa <b>${brl(porHora)} de lucro por hora</b> de máquina ocupada.
+           A cada peça vendida você recupera <b>${brl(precoF/qtd - (custoT/qtd))}</b> de lucro unitário.</div>`;
+    if(porHora < 3 && porHora > 0){
+      msg += `<div class="alerta">O lucro por hora está baixo. Ou a margem sobe, ou vale ocupar a máquina
+              com outra peça: <b>tempo de impressora é o recurso mais escasso que você tem</b>.</div>`;
+    }
+  }
+  $("#alerta").innerHTML = msg;
+}
+
+/* recalcular a cada toque */
+["peso","tempo","qtd","ckg","emb","out","risco","margem","watts","kwh","maq","vida"]
+  .forEach(id => document.getElementById(id).addEventListener("input", calc));
+
+document.querySelector('.cat[data-id="personalizado"]').classList.add("on");
+calc();
+</script>
+</body>
+</html>
