@@ -150,6 +150,12 @@ h1{margin-bottom:8px}
 .item .info b{display:block; font-family:var(--f-display); font-weight:700; font-size:12.5px; letter-spacing:-.01em; line-height:1.25}
 .item .info span{display:block; font-family:var(--f-mono); font-size:11px; color:var(--nozzle); margin-top:5px}
 .item .info small{display:block; font-family:var(--f-mono); font-size:8.5px; letter-spacing:.1em; color:var(--ghost)}
+.item .info em{
+  display:block; font-style:normal; margin-top:7px; padding-top:7px;
+  border-top:1px solid var(--line);
+  font-family:var(--f-mono); font-size:8.5px; letter-spacing:.05em;
+  color:var(--ghost); line-height:1.6;
+}
 .hint{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.12em; color:var(--ghost); margin-top:10px}
 
 /* ============ rodapé ============ */
@@ -263,6 +269,8 @@ const foto = slug => BUCKET + "produtos/" + slug + ".png";
 
 /* Peças da tirinha, na ordem em que aparecem. */
 const PECAS = [
+  { slug:"aparecida",   nome:"Nossa Senhora",     preco:40, img: IMG + "FEAparecida.png",
+    detalhe:"P 8CM R$ 40 · M 12CM R$ 80 · G 16CM R$ 120" },
   { slug:"estrela",     nome:"Chaveiro Estrela",  preco:10, img: IMG + "Estrela.png" },
   { slug:"coracao",     nome:"Chaveiro Coração",  preco:10, img: IMG + "S2.png" },
   { slug:"beijo",       nome:"Chaveiro Beijo",    preco:10, img: IMG + "Boca.png" },
@@ -346,8 +354,14 @@ function miniatura(nome){
     </g>${aneis}</svg>`;
 }
 
+function msgPeca(p){
+  return "Olá! Quero saber mais sobre: " + p.nome + "."
+       + (p.detalhe ? " (" + p.detalhe.replace(/ · /g, ", ") + ")" : "")
+       + " Vim pela tag NFC da Printilda.";
+}
+
 $("#reel").innerHTML = PECAS.map(p => `
-  <a class="item" href="${zap(`Olá! Quero saber mais sobre: ${p.nome}. Vim pela tag NFC da Printilda.`)}" target="_blank" rel="noopener">
+  <a class="item" href="${zap(msgPeca(p))}" target="_blank" rel="noopener">
     <span class="pic">
       ${miniatura(p.nome)}
       ${p.img ? `<img src="${p.img}" alt="${p.nome}" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">` : ""}
@@ -356,6 +370,7 @@ $("#reel").innerHTML = PECAS.map(p => `
       <b>${p.nome}</b>
       <small>A PARTIR DE</small>
       <span>${dinheiro(p.preco)}</span>
+      ${p.detalhe ? `<em>${p.detalhe}</em>` : ""}
     </span>
   </a>`).join("");
 
